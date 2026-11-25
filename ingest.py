@@ -18,7 +18,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
-from openai_clients import EMBEDDING_MODEL, get_api_key
+from openai_clients import EMBEDDING_MODEL
 
 # ---- Config ----
 DATA_DIR = Path("data")
@@ -104,7 +104,7 @@ def split_documents(docs):
 
 def embed_and_store(chunks):
     """Generate embeddings for each chunk and persist in ChromaDB."""
-    embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL, api_key=get_api_key())
+    embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
 
     vectorstore = Chroma.from_documents(
         documents=chunks,

@@ -16,13 +16,13 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from typing import Optional
-from openai_clients import EMBEDDING_MODEL, CHAT_MODEL, get_api_key
+from openai_clients import EMBEDDING_MODEL, CHAT_MODEL
 
 CHROMA_DIR = "chroma_db"
 TOP_K = 3  # how many chunks to retrieve per question
 
 # ---- 1. Load existing vector store (built by ingest.py) ----
-embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL, api_key=get_api_key())
+embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
 vectorstore = Chroma(
     persist_directory=CHROMA_DIR,
     embedding_function=embeddings,
@@ -79,7 +79,6 @@ prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
 llm = ChatOpenAI(
     model=CHAT_MODEL,
     temperature=0,
-    api_key=get_api_key(),
 )
 
 

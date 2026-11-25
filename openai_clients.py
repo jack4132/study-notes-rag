@@ -17,15 +17,3 @@ import os
 
 EMBEDDING_MODEL = "text-embedding-3-small"
 CHAT_MODEL = "gpt-4o-mini"
-
-
-def get_api_key():
-    """
-    Returns the OpenAI API key with whitespace/newlines stripped.
-    Defends against a real bug we hit: env vars set via some dashboards
-    (e.g. Render) can end up with a trailing \n if pasted carelessly,
-    which makes the 'Bearer <key>' HTTP header invalid and causes a
-    confusing 'Connection error' instead of a clear auth error.
-    """
-    key = os.getenv("OPENAI_API_KEY", "")
-    return key.strip()
