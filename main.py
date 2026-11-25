@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from pathlib import Path
+from typing import Optional
 import shutil
 
 from rag_chain import ask, ask_stream
@@ -41,6 +42,7 @@ app.add_middleware(
 # ---- Request/response shapes (Pydantic models) ----
 class ChatRequest(BaseModel):
     message: str
+    source: Optional[str] = None  # optional filename to scope retrieval to
 
 
 class ChatResponse(BaseModel):
@@ -61,7 +63,7 @@ async def chat(request: ChatRequest):
     citation-enforcing prompt + LLM), returns the answer.
     Non-streaming version - full answer returned in one response.
     """
-    answer = ask(request.message)
+    answer = ask(request.message, source=request.source)
     return ChatResponse(answer=answer)
 
 
@@ -73,7 +75,7 @@ async def chat_stream(request: ChatRequest):
     effect instead of waiting for the full answer.
     """
     async def event_generator():
-        async for token in ask_stream(request.message):
+        async for token in ask_stream(request.message, source=request.source):
             # SSE wire format: each message starts with "data: " and
             # ends with two newlines. We escape real newlines in the
             # token so one SSE message isn't accidentally split.

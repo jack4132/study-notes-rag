@@ -15,6 +15,7 @@ from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
+from typing import Optional
 
 CHROMA_DIR = "chroma_db"
 TOP_K = 3  # how many chunks to retrieve per question
@@ -26,6 +27,18 @@ vectorstore = Chroma(
     embedding_function=embeddings,
 )
 retriever = vectorstore.as_retriever(search_kwargs={"k": TOP_K})
+
+
+def get_retriever(source: Optional[str] = None):
+    """
+    Returns a retriever scoped to ONE document if `source` (filename) is
+    given, otherwise searches across all documents. This is how the
+    frontend's document picker scopes Q&A to a specific uploaded file.
+    """
+    search_kwargs = {"k": TOP_K}
+    if source:
+        search_kwargs["filter"] = {"source": source}
+    return vectorstore.as_retriever(search_kwargs=search_kwargs)
 
 # ---- 2. Prompt template that forces grounded answers + citations ----
 PROMPT_TEMPLATE = """You are a study assistant. Answer using ONLY the
@@ -79,26 +92,33 @@ def format_docs(docs):
 # ---- 4. The chain (LCEL - LangChain Expression Language) ----
 # Reads right to left conceptually: question -> retriever -> format ->
 # prompt -> llm -> parse to plain string.
-rag_chain = (
-    {"context": retriever | format_docs, "question": RunnablePassthrough()}
-    | prompt
-    | llm
-    | StrOutputParser()
-)
+def build_chain(source: Optional[str] = None):
+    """Builds the LCEL chain using a retriever scoped to `source` if given."""
+    scoped_retriever = get_retriever(source)
+    return (
+        {"context": scoped_retriever | format_docs, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
 
 
-def ask(question: str) -> str:
-    """Public function: ask a question, get a grounded, cited answer."""
-    return rag_chain.invoke(question)
+def ask(question: str, source: Optional[str] = None) -> str:
+    """Public function: ask a question, get a grounded, cited answer.
+    Pass `source` (a filename) to scope retrieval to just that document."""
+    chain = build_chain(source)
+    return chain.invoke(question)
 
 
-async def ask_stream(question: str):
+async def ask_stream(question: str, source: Optional[str] = None):
     """
     Async generator version - yields answer tokens one at a time as the
     LLM generates them, instead of waiting for the full answer.
-    Used by the streaming API endpoint (SSE).
+    Used by the streaming API endpoint (SSE). Pass `source` to scope
+    retrieval to just that document.
     """
-    async for chunk in rag_chain.astream(question):
+    chain = build_chain(source)
+    async for chunk in chain.astream(question):
         yield chunk
 
 
