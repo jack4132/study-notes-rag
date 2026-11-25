@@ -14,6 +14,7 @@ both embeddings and chat model instances.
 """
 
 import httpx
+import os
 
 # local_address="0.0.0.0" forces the underlying socket to bind using
 # IPv4, skipping the IPv6 attempt entirely.
@@ -34,3 +35,15 @@ def get_http_client():
 
 def get_async_http_client():
     return _async_http_client
+
+
+def get_api_key():
+    """
+    Returns the OpenAI API key with whitespace/newlines stripped.
+    Defends against a real bug we hit: env vars set via some dashboards
+    (e.g. Render) can end up with a trailing \n if pasted carelessly,
+    which makes the 'Bearer <key>' HTTP header invalid and causes a
+    confusing 'Connection error' instead of a clear auth error.
+    """
+    key = os.getenv("OPENAI_API_KEY", "")
+    return key.strip()
